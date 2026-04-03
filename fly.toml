@@ -4,6 +4,12 @@ primary_region = "ord"
 [build]
 
 [env]
+  SQLITE_PATH = "/data/postagent.db"
+  MQTT_BROKER = "test.mosquitto.org"
+
+[mounts]
+  source = "postagent_data"
+  destination = "/data"
 
 [http_service]
   internal_port = 8000
