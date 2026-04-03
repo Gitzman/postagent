@@ -35,6 +35,7 @@ jobs:
           pip install pyinstaller
 
       - name: Build binary
+        shell: bash
         run: |
           pyinstaller --onefile --name ${{ matrix.artifact }} --clean \
             --hidden-import _cffi_backend \
@@ -43,12 +44,8 @@ jobs:
             --collect-all nacl \
             postagent/cli/main.py
 
-      - name: Smoke test (unix)
-        if: runner.os != 'Windows'
-        run: ./dist/${{ matrix.artifact }} --help
-
-      - name: Smoke test (windows)
-        if: runner.os == 'Windows'
+      - name: Smoke test
+        shell: bash
         run: ./dist/${{ matrix.artifact }} --help
 
       - uses: actions/upload-artifact@v4
