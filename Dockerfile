@@ -3,7 +3,7 @@ FROM python:3.12-slim
 WORKDIR /app
 
 # Install only production dependencies
-COPY pyproject.toml .
+COPY pyproject.toml README.md ./
 COPY postagent/ postagent/
 RUN pip install --no-cache-dir .
 
