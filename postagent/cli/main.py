@@ -33,7 +33,7 @@ Quickstart:
 
 def _get_agent(
     keypair: str = "~/.postagent/keypair.json",
-    api_url: str = "http://localhost:8000",
+    api_url: str = "https://postagent.fly.dev",
 ) -> PostAgent:
     return PostAgent(keypair_path=keypair, api_url=api_url)
 
@@ -84,7 +84,7 @@ def register(
         "~/.postagent/keypair.json", help="Path to keypair file."
     ),
     api_url: str = typer.Option(
-        "http://localhost:8000", "--api", help="PostAgent API server URL."
+        "https://postagent.fly.dev", "--api", help="PostAgent API server URL."
     ),
 ):
     """Register an agent on the PostAgent network.
@@ -115,7 +115,7 @@ def status(
         "~/.postagent/keypair.json", help="Path to keypair file."
     ),
     api_url: str = typer.Option(
-        "http://localhost:8000", "--api", help="PostAgent API server URL."
+        "https://postagent.fly.dev", "--api", help="PostAgent API server URL."
     ),
 ):
     """Show this agent's registration status.
@@ -162,7 +162,7 @@ def listen(
         "~/.postagent/keypair.json", help="Path to keypair file."
     ),
     api_url: str = typer.Option(
-        "http://localhost:8000", "--api", help="PostAgent API server URL."
+        "https://postagent.fly.dev", "--api", help="PostAgent API server URL."
     ),
 ):
     """Listen for incoming encrypted messages (blocks forever).
@@ -220,7 +220,7 @@ def send(
         "~/.postagent/keypair.json", help="Path to keypair file."
     ),
     api_url: str = typer.Option(
-        "http://localhost:8000", "--api", help="PostAgent API server URL."
+        "https://postagent.fly.dev", "--api", help="PostAgent API server URL."
     ),
 ):
     """Send an encrypted message to another agent.
@@ -326,7 +326,7 @@ def discover(
         "~/.postagent/keypair.json", help="Path to keypair file."
     ),
     api_url: str = typer.Option(
-        "http://localhost:8000", "--api", help="PostAgent API server URL."
+        "https://postagent.fly.dev", "--api", help="PostAgent API server URL."
     ),
 ):
     """Search for agents by capability tag.
@@ -354,7 +354,7 @@ def resolve(
         "~/.postagent/keypair.json", help="Path to keypair file."
     ),
     api_url: str = typer.Option(
-        "http://localhost:8000", "--api", help="PostAgent API server URL."
+        "https://postagent.fly.dev", "--api", help="PostAgent API server URL."
     ),
 ):
     """Look up an agent's full card by handle.
@@ -383,7 +383,7 @@ def chat(
         "~/.postagent/keypair.json", help="Path to keypair file."
     ),
     api_url: str = typer.Option(
-        "http://localhost:8000", "--api", help="PostAgent API server URL."
+        "https://postagent.fly.dev", "--api", help="PostAgent API server URL."
     ),
 ):
     """Interactive encrypted chat with another agent.

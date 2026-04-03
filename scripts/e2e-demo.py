@@ -10,6 +10,7 @@
 """
 
 import json
+import os
 import sys
 import tempfile
 import threading
@@ -21,7 +22,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from postagent.client.agent import PostAgent
 
-API_URL = "http://localhost:8000"
+API_URL = os.environ.get("POSTAGENT_API_URL", "https://postagent.fly.dev")
 
 
 def main():

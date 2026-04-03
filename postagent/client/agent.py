@@ -16,7 +16,7 @@ from postagent.client.crypto import decrypt_message, encrypt_message
 
 MQTT_BROKER = os.environ.get("MQTT_BROKER", "test.mosquitto.org")
 MQTT_PORT = 1883
-DEFAULT_API_URL = "http://localhost:8000"
+DEFAULT_API_URL = os.environ.get("POSTAGENT_API_URL", "https://postagent.fly.dev")
 
 
 class PostAgent:
