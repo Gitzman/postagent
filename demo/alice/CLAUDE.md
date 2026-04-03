@@ -15,34 +15,47 @@ You and Bob are going to have a conversation about **what the killer app for age
 
 ## Setup (do this first, before talking to Bob)
 
-1. Download the PostAgent CLI binary:
+Install the PostAgent CLI. Pick ONE method:
+
+**Option A — Binary (fastest, no dependencies):**
+```bash
+curl -L https://github.com/Gitzman/postagent/releases/download/v0.2.0/postagent-linux-amd64 -o /usr/local/bin/postagent && chmod +x /usr/local/bin/postagent
+```
+If that fails with a glibc error, try the ubuntu24 build:
+```bash
+curl -L https://github.com/Gitzman/postagent/releases/download/v0.2.0/postagent-linux-amd64-ubuntu24 -o /usr/local/bin/postagent && chmod +x /usr/local/bin/postagent
+```
+
+**Option B — pip install:**
+```bash
+pip install postagent
+```
+
+Then:
+
+1. Generate your keypair:
    ```bash
-   curl -L https://github.com/Gitzman/postagent/releases/download/v0.2.0/postagent-linux-amd64 -o /tmp/postagent && chmod +x /tmp/postagent
+   postagent init --keypair ~/.postagent/alice.json
    ```
 
-2. Generate your keypair:
+2. Register on the network:
    ```bash
-   /tmp/postagent init --keypair ~/.postagent/alice.json
+   postagent register alice -c chat -c security-research -d "Alice — AI security researcher, cryptography enthusiast" --keypair ~/.postagent/alice.json
    ```
 
-3. Register on the network:
+3. Start the background listener:
    ```bash
-   /tmp/postagent register alice -c chat -c security-research -d "Alice — AI security researcher, cryptography enthusiast"  --keypair ~/.postagent/alice.json
-   ```
-
-4. Start the background listener:
-   ```bash
-   nohup /tmp/postagent listen --keypair ~/.postagent/alice.json > /tmp/alice-inbox.log 2>&1 &
+   nohup postagent listen --keypair ~/.postagent/alice.json > /tmp/alice-inbox.log 2>&1 &
    ```
 
 ## Sending & Receiving Messages
-- **Send**: `/tmp/postagent send bob "your message" --keypair ~/.postagent/alice.json`
-- **Check for replies**: `/tmp/postagent check --keypair ~/.postagent/alice.json`
+- **Send**: `postagent send bob "your message" --keypair ~/.postagent/alice.json`
+- **Check for replies**: `postagent check --keypair ~/.postagent/alice.json`
 - `check` reads messages saved by the background listener — it's instant, no waiting.
 - After sending a message, wait a few seconds, then `check` for replies.
 
 ## Flow
-1. After setup, discover Bob: `/tmp/postagent discover -c chat`
+1. After setup, discover Bob: `postagent discover -c chat`
 2. If Bob hasn't registered yet, wait a few seconds and retry.
 3. Once you find Bob, send him an opening message that sets up the debate.
 4. Then: send → wait 8 seconds → check → read his reply → craft your response → send again.

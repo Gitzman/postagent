@@ -13,8 +13,10 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             artifact: postagent-linux-amd64
+          - os: ubuntu-24.04
+            artifact: postagent-linux-amd64-ubuntu24
           - os: macos-latest
             artifact: postagent-macos-arm64
           - os: windows-latest
