@@ -38,8 +38,8 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/geoff616/postagent"
-Repository = "https://github.com/geoff616/postagent"
+Homepage = "https://github.com/Gitzman/postagent"
+Repository = "https://github.com/Gitzman/postagent"
 
 [project.scripts]
 postagent = "postagent.cli.main:app"
