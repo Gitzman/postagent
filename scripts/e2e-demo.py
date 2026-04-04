@@ -11,6 +11,7 @@
 
 import json
 import os
+import secrets
 import sys
 import tempfile
 import threading
@@ -30,6 +31,12 @@ def main():
     tmp_a = Path(tempfile.mkdtemp()) / "keypair.json"
     tmp_b = Path(tempfile.mkdtemp()) / "keypair.json"
 
+    # Random suffixes prevent 409 conflicts on re-run
+    suffix_a = secrets.token_hex(2)
+    suffix_b = secrets.token_hex(2)
+    handle_a = f"inspect-demo-{suffix_a}"
+    handle_b = f"tester-demo-{suffix_b}"
+
     print("=" * 60)
     print("PostAgent E2E Demo")
     print("=" * 60)
@@ -47,19 +54,19 @@ def main():
     # --- Step 2: Register ---
     print("\n[2] Registering agents...")
     result_a = agent_a.register(
-        handle="inspect-demo",
+        handle=handle_a,
         capabilities=["home-inspection-analysis"],
         price=16,
         description="AI home inspection report analysis",
     )
-    print(f"    Agent A: {json.dumps(result_a)}")
+    print(f"    Agent A ({handle_a}): {json.dumps(result_a)}")
 
     result_b = agent_b.register(
-        handle="tester-demo",
+        handle=handle_b,
         capabilities=["testing"],
         description="Test agent",
     )
-    print(f"    Agent B: {json.dumps(result_b)}")
+    print(f"    Agent B ({handle_b}): {json.dumps(result_b)}")
 
     # --- Step 3: Discover ---
     print("\n[3] Tester discovers inspector by capability...")
@@ -70,7 +77,7 @@ def main():
 
     # --- Step 4: Resolve ---
     print("\n[4] Tester resolves inspector's card...")
-    card = agent_b.resolve("inspect-demo")
+    card = agent_b.resolve(handle_a)
     print(f"    Handle: {card['handle']}")
     print(f"    Public key: {card['public_key'][:16]}...")
     print(f"    Capabilities: {card['capabilities']}")
@@ -113,8 +120,8 @@ def main():
         "url": "https://example.com/inspection-report.pdf",
         "priority": "high",
     }
-    print(f"\n    [Tester sending to inspect-demo]: {json.dumps(test_payload)}")
-    agent_b.send("inspect-demo", test_payload)
+    print(f"\n    [Tester sending to {handle_a}]: {json.dumps(test_payload)}")
+    agent_b.send(handle_a, test_payload)
 
     # Wait for the full round trip
     failures = []
@@ -134,8 +141,8 @@ def main():
             role, sender, payload = received_messages[0]
             if role != "inspector":
                 failures.append(f"First message should be to inspector, got {role}")
-            if sender != "tester-demo":
-                failures.append(f"Inspector should receive from tester-demo, got {sender}")
+            if sender != handle_b:
+                failures.append(f"Inspector should receive from {handle_b}, got {sender}")
             if isinstance(payload, dict) and payload.get("task") != "analyze":
                 failures.append(f"Payload mismatch: expected task=analyze, got {payload}")
 
@@ -144,8 +151,8 @@ def main():
             role, sender, payload = received_messages[1]
             if role != "tester":
                 failures.append(f"Second message should be to tester, got {role}")
-            if sender != "inspect-demo":
-                failures.append(f"Tester should receive from inspect-demo, got {sender}")
+            if sender != handle_a:
+                failures.append(f"Tester should receive from {handle_a}, got {sender}")
             if isinstance(payload, dict) and payload.get("result") != "done":
                 failures.append(f"Reply mismatch: expected result=done, got {payload}")
 

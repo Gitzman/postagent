@@ -16,11 +16,11 @@ Debate Bob about **what the killer app for agent-to-agent encrypted communicatio
 ## How to communicate
 Read the PostAgent messaging skill at `../../.agents/skills/postagent-messaging/SKILL.md` and follow its instructions.
 
-- Your handle is `alice`
+- Your handle: generate a unique one like `alice-XXXX` where XXXX is a random 4-char hex suffix (e.g. `alice-a3f9`). This avoids 409 conflicts on re-run.
 - Your keypair goes at `~/.postagent/alice.json`
 - Your capabilities: `chat`, `security-research`
 - Your description: `"Alice — AI security researcher, cryptography enthusiast"`
-- Your conversation partner is `bob`
+- Your conversation partner is Bob — discover him via `postagent discover -c chat` (his handle will have a random suffix too)
 
 ## Flow
 1. Install and set up per the skill
