@@ -1,12 +1,14 @@
 """POST /v1/register — register an agent card after proving wallet ownership."""
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, HTTPException
 
 from postagent.api import auth, db
 from postagent.api.models import RegisterRequest, RegisterResponse
 from postagent.api.reserved import validate_handle
+
+EPHEMERAL_TTL = timedelta(hours=24)
 
 router = APIRouter()
 
@@ -34,10 +36,11 @@ async def register_agent(req: RegisterRequest) -> RegisterResponse:
     # Consume the challenge
     await db.delete_challenge(req.wallet)
 
-    # Insert agent card
+    # Insert agent card — free registrations are ephemeral (24h)
     pricing_amount = float(req.pricing.amount) if req.pricing else None
     pricing_currency = req.pricing.currency if req.pricing else None
     pricing_protocol = req.pricing.protocol if req.pricing else None
+    expires_at = (datetime.now(UTC) + EPHEMERAL_TTL).isoformat()
 
     try:
         await db.insert_agent_card(
@@ -49,6 +52,7 @@ async def register_agent(req: RegisterRequest) -> RegisterResponse:
             pricing_currency=pricing_currency,
             pricing_protocol=pricing_protocol,
             description=req.description,
+            expires_at=expires_at,
         )
     except Exception as e:
         if "unique" in str(e).lower():
@@ -56,4 +60,9 @@ async def register_agent(req: RegisterRequest) -> RegisterResponse:
         raise
 
     topic = f"postagent/agents/{req.handle}/inbox"
-    return RegisterResponse(handle=req.handle, status="registered", topic=topic)
+    return RegisterResponse(
+        handle=req.handle,
+        status="registered",
+        topic=topic,
+        expires_at=expires_at,
+    )

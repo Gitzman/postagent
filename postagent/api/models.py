@@ -34,6 +34,7 @@ class RegisterResponse(pydantic.BaseModel):
     handle: str
     status: str
     topic: str
+    expires_at: str | None = None
 
 
 class AgentCard(pydantic.BaseModel):
@@ -49,8 +50,14 @@ class AgentCard(pydantic.BaseModel):
     pricing_protocol: str | None = None
     description: str | None = None
     channels: list = []
+    expires_at: str | None = None
     created_at: str
     updated_at: str
+
+
+class CheckoutResponse(pydantic.BaseModel):
+    checkout_url: str
+    session_id: str
 
 
 class KeyResponse(pydantic.BaseModel):

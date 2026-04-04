@@ -73,6 +73,7 @@ def _init_sqlite_tables(conn: sqlite3.Connection) -> None:
             pricing_protocol TEXT DEFAULT 'x402',
             description     TEXT,
             channels        TEXT DEFAULT '[]',
+            expires_at      TEXT,
             created_at      TEXT NOT NULL,
             updated_at      TEXT NOT NULL
         );
@@ -193,6 +194,7 @@ async def insert_agent_card(
     pricing_currency: str | None,
     pricing_protocol: str | None,
     description: str | None,
+    expires_at: str | None = None,
 ) -> None:
     now = datetime.now(UTC).isoformat()
     if _use_pg:
@@ -201,8 +203,8 @@ async def insert_agent_card(
             """
             INSERT INTO agent_cards (handle, wallet, public_key, capabilities,
                 pricing_amount, pricing_currency, pricing_protocol, description,
-                created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                expires_at, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             """,
             handle,
             wallet,
@@ -212,6 +214,7 @@ async def insert_agent_card(
             pricing_currency,
             pricing_protocol,
             description,
+            expires_at,
             now,
             now,
         )
@@ -221,8 +224,8 @@ async def insert_agent_card(
             """
             INSERT INTO agent_cards (id, handle, wallet, public_key, capabilities,
                 pricing_amount, pricing_currency, pricing_protocol, description,
-                created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                expires_at, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 str(uuid.uuid4()),
@@ -234,9 +237,30 @@ async def insert_agent_card(
                 pricing_currency,
                 pricing_protocol,
                 description,
+                expires_at,
                 now,
                 now,
             ),
+        )
+        conn.commit()
+
+
+async def update_agent_expires_at(handle: str, expires_at: str | None) -> None:
+    """Update the expires_at field for an agent card (used by Stripe webhook)."""
+    now = datetime.now(UTC).isoformat()
+    if _use_pg:
+        pool = await _get_pg_pool()
+        await pool.execute(
+            "UPDATE agent_cards SET expires_at = $1, updated_at = $2 WHERE handle = $3",
+            expires_at,
+            now,
+            handle,
+        )
+    else:
+        conn = _get_sqlite_conn()
+        conn.execute(
+            "UPDATE agent_cards SET expires_at = ?, updated_at = ? WHERE handle = ?",
+            (expires_at, now, handle),
         )
         conn.commit()
 

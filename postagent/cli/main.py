@@ -80,9 +80,10 @@ def register(
     description: str | None = typer.Option(
         None, "--description", "-d", help="Human-readable agent description."
     ),
-    keypair: str = typer.Option(
-        "~/.postagent/keypair.json", help="Path to keypair file."
+    permanent: bool = typer.Option(
+        False, "--permanent", help="Pay $1 to make the handle permanent (opens Stripe checkout)."
     ),
+    keypair: str = typer.Option("~/.postagent/keypair.json", help="Path to keypair file."),
     api_url: str = typer.Option(
         "https://postagent.fly.dev", "--api", help="PostAgent API server URL."
     ),
@@ -92,11 +93,14 @@ def register(
     \b
     Signs a challenge from the API server to prove keypair ownership,
     then creates an agent card with the given handle and capabilities.
+    Handles are ephemeral by default (expire after 24 hours).
+    Use --permanent to pay $1 and keep the handle forever.
 
     \b
     Examples:
       postagent register alice -c chat -d "A friendly AI agent"
-      postagent register inspector -c home-inspection --price 16 --keypair ~/.postagent/inspector.json
+      postagent register alice -c chat --permanent
+      postagent register inspector -c home-inspection --price 16
     """
     agent = _get_agent(keypair=keypair, api_url=api_url)
     result = agent.register(
@@ -108,12 +112,29 @@ def register(
     )
     typer.echo(json.dumps(result, indent=2))
 
+    # Show expiry warning for ephemeral handles
+    expires_at = result.get("expires_at")
+    if expires_at:
+        typer.echo(
+            f"\n⚠ Ephemeral handle — expires at {expires_at}\n"
+            "  Run: postagent register <handle> --permanent  to keep it forever ($1)."
+        )
+
+    # If --permanent, initiate Stripe checkout
+    if permanent:
+        import httpx
+
+        resp = httpx.post(f"{api_url.rstrip('/')}/v1/checkout/{handle}")
+        if resp.status_code == 200:
+            checkout_url = resp.json()["checkout_url"]
+            typer.echo(f"\nOpen this URL to complete payment:\n  {checkout_url}")
+        else:
+            typer.echo(f"\nCould not create checkout session: {resp.text}", err=True)
+
 
 @app.command()
 def status(
-    keypair: str = typer.Option(
-        "~/.postagent/keypair.json", help="Path to keypair file."
-    ),
+    keypair: str = typer.Option("~/.postagent/keypair.json", help="Path to keypair file."),
     api_url: str = typer.Option(
         "https://postagent.fly.dev", "--api", help="PostAgent API server URL."
     ),
@@ -145,10 +166,23 @@ def status(
             info["public_key"] = card.get("public_key", "")[:16] + "..."
             info["capabilities"] = card.get("capabilities", [])
             info["description"] = card.get("description", "")
+            expires_at = card.get("expires_at")
+            if expires_at:
+                info["expires_at"] = expires_at
+                info["handle_type"] = "ephemeral"
+            else:
+                info["handle_type"] = "permanent"
         except Exception:
             info["note"] = "Registered locally but could not resolve from API"
 
     typer.echo(json.dumps(info, indent=2))
+
+    # Show expiry warning
+    if info.get("handle_type") == "ephemeral":
+        typer.echo(
+            f"\n⚠ Ephemeral handle — expires at {info['expires_at']}\n"
+            "  Run: postagent register <handle> --permanent  to keep it forever ($1)."
+        )
 
 
 def _inbox_path(handle: str) -> Path:
@@ -158,9 +192,7 @@ def _inbox_path(handle: str) -> Path:
 
 @app.command()
 def listen(
-    keypair: str = typer.Option(
-        "~/.postagent/keypair.json", help="Path to keypair file."
-    ),
+    keypair: str = typer.Option("~/.postagent/keypair.json", help="Path to keypair file."),
     api_url: str = typer.Option(
         "https://postagent.fly.dev", "--api", help="PostAgent API server URL."
     ),
@@ -209,16 +241,12 @@ def listen(
 @app.command()
 def send(
     target: str = typer.Argument(..., help="Target agent handle."),
-    message: str | None = typer.Argument(None, help="Message text to send (or use --payload/--file for JSON)."),
-    payload: str | None = typer.Option(
-        None, "--payload", "-p", help="JSON payload string."
+    message: str | None = typer.Argument(
+        None, help="Message text to send (or use --payload/--file for JSON)."
     ),
-    file: Path | None = typer.Option(
-        None, "--file", "-f", help="Path to JSON file to send."
-    ),
-    keypair: str = typer.Option(
-        "~/.postagent/keypair.json", help="Path to keypair file."
-    ),
+    payload: str | None = typer.Option(None, "--payload", "-p", help="JSON payload string."),
+    file: Path | None = typer.Option(None, "--file", "-f", help="Path to JSON file to send."),
+    keypair: str = typer.Option("~/.postagent/keypair.json", help="Path to keypair file."),
     api_url: str = typer.Option(
         "https://postagent.fly.dev", "--api", help="PostAgent API server URL."
     ),
@@ -264,9 +292,7 @@ def send(
 
 @app.command()
 def check(
-    keypair: str = typer.Option(
-        "~/.postagent/keypair.json", help="Path to keypair file."
-    ),
+    keypair: str = typer.Option("~/.postagent/keypair.json", help="Path to keypair file."),
 ):
     """Check for new messages (non-blocking).
 
@@ -318,13 +344,9 @@ def check(
 
 @app.command()
 def discover(
-    capability: str = typer.Option(
-        ..., "--capability", "-c", help="Capability tag to search for."
-    ),
+    capability: str = typer.Option(..., "--capability", "-c", help="Capability tag to search for."),
     limit: int = typer.Option(10, help="Maximum number of results."),
-    keypair: str = typer.Option(
-        "~/.postagent/keypair.json", help="Path to keypair file."
-    ),
+    keypair: str = typer.Option("~/.postagent/keypair.json", help="Path to keypair file."),
     api_url: str = typer.Option(
         "https://postagent.fly.dev", "--api", help="PostAgent API server URL."
     ),
@@ -350,9 +372,7 @@ def discover(
 @app.command()
 def resolve(
     handle: str = typer.Argument(..., help="Agent handle to look up."),
-    keypair: str = typer.Option(
-        "~/.postagent/keypair.json", help="Path to keypair file."
-    ),
+    keypair: str = typer.Option("~/.postagent/keypair.json", help="Path to keypair file."),
     api_url: str = typer.Option(
         "https://postagent.fly.dev", "--api", help="PostAgent API server URL."
     ),
@@ -379,9 +399,7 @@ def resolve(
 @app.command()
 def chat(
     target: str = typer.Argument(..., help="Agent handle to chat with."),
-    keypair: str = typer.Option(
-        "~/.postagent/keypair.json", help="Path to keypair file."
-    ),
+    keypair: str = typer.Option("~/.postagent/keypair.json", help="Path to keypair file."),
     api_url: str = typer.Option(
         "https://postagent.fly.dev", "--api", help="PostAgent API server URL."
     ),

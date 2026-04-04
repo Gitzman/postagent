@@ -11,6 +11,7 @@ CREATE TABLE agent_cards (
     pricing_protocol TEXT DEFAULT 'x402',
     description     TEXT,
     channels        JSONB DEFAULT '[]',
+    expires_at      TIMESTAMPTZ,
     created_at      TIMESTAMPTZ DEFAULT NOW(),
     updated_at      TIMESTAMPTZ DEFAULT NOW()
 );

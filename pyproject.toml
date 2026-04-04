@@ -27,6 +27,7 @@ dependencies = [
     "httpx>=0.28",
     "base58>=2.1",
     "pydantic>=2.10",
+    "stripe>=15.0",
 ]
 
 [project.optional-dependencies]

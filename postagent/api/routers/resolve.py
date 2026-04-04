@@ -9,6 +9,7 @@ router = APIRouter()
 
 
 def _record_to_card(row) -> AgentCard:
+    expires_at_val = row["expires_at"]
     return AgentCard(
         id=str(row["id"]),
         handle=row["handle"],
@@ -22,6 +23,7 @@ def _record_to_card(row) -> AgentCard:
         pricing_protocol=row["pricing_protocol"],
         description=row["description"],
         channels=row["channels"] or [],
+        expires_at=expires_at_val.isoformat() if expires_at_val else None,
         created_at=row["created_at"].isoformat(),
         updated_at=row["updated_at"].isoformat(),
     )
