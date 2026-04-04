@@ -120,7 +120,9 @@ def main():
     failures = []
 
     if not reply_received.wait(timeout=15):
-        failures.append(f"TIMEOUT: round-trip not completed in 15s (got {len(received_messages)} messages)")
+        failures.append(
+            f"TIMEOUT: round-trip not completed in 15s (got {len(received_messages)} messages)"
+        )
 
     if not failures:
         # Verify message count

@@ -38,9 +38,12 @@ def load_keypair(path: str) -> tuple[PrivateKey, str]:
     return PrivateKey(seed[:32]), data.get("handle", "unknown")
 
 
-def decrypt_payload(encrypted_b64: str, sender_pub_bytes: bytes, recipient_privkey: PrivateKey) -> str:
+def decrypt_payload(
+    encrypted_b64: str, sender_pub_bytes: bytes, recipient_privkey: PrivateKey
+) -> str:
     """Decrypt a NaCl box encrypted payload."""
     import base64
+
     encrypted = base64.b64decode(encrypted_b64)
     sender_pub = PublicKey(sender_pub_bytes)
     box = Box(recipient_privkey, sender_pub)
@@ -57,8 +60,11 @@ def main():
     parser.add_argument("--bob", help="Path to Bob's keypair (for decryption)")
     parser.add_argument("--topic", default="postagent/agents/#", help="MQTT topic filter")
     parser.add_argument("--broker", default=MQTT_BROKER, help="MQTT broker hostname")
-    parser.add_argument("--api", default=os.environ.get("POSTAGENT_API_URL", "https://postagent.fly.dev"),
-                        help="PostAgent API URL (for resolving public keys)")
+    parser.add_argument(
+        "--api",
+        default=os.environ.get("POSTAGENT_API_URL", "https://postagent.fly.dev"),
+        help="PostAgent API URL (for resolving public keys)",
+    )
     args = parser.parse_args()
 
     # Load keypairs if provided
@@ -82,6 +88,7 @@ def main():
             return pub_key_cache[handle]
         try:
             import httpx
+
             resp = httpx.get(f"{args.api}/v1/key/{handle}")
             resp.raise_for_status()
             pub_b58 = resp.json()["public_key"]
