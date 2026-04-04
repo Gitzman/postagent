@@ -30,6 +30,33 @@ def test_challenge(mock_upsert):
     assert len(data["nonce"]) == 64  # 32 bytes hex
 
 
+def test_register_reserved_handle():
+    resp = client.post(
+        "/v1/register",
+        json={
+            "handle": "google",
+            "wallet": "fakewallet",
+            "proof": "fakeproof",
+            "public_key": "fakepk",
+        },
+    )
+    assert resp.status_code == 422
+    assert "reserved" in resp.json()["detail"]
+
+
+def test_register_invalid_handle_format():
+    resp = client.post(
+        "/v1/register",
+        json={
+            "handle": "A",
+            "wallet": "fakewallet",
+            "proof": "fakeproof",
+            "public_key": "fakepk",
+        },
+    )
+    assert resp.status_code == 422
+
+
 @patch("postagent.api.routers.resolve.db.get_agent_by_handle", new_callable=AsyncMock)
 def test_resolve_not_found(mock_get):
     mock_get.return_value = None

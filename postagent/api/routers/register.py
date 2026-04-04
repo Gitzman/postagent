@@ -6,12 +6,18 @@ from fastapi import APIRouter, HTTPException
 
 from postagent.api import auth, db
 from postagent.api.models import RegisterRequest, RegisterResponse
+from postagent.api.reserved import validate_handle
 
 router = APIRouter()
 
 
 @router.post("/v1/register", response_model=RegisterResponse)
 async def register_agent(req: RegisterRequest) -> RegisterResponse:
+    # Validate handle format and reserved names
+    handle_error = validate_handle(req.handle)
+    if handle_error:
+        raise HTTPException(status_code=422, detail=handle_error)
+
     # Fetch and validate challenge
     challenge = await db.get_challenge(req.wallet)
     if challenge is None:
