@@ -96,13 +96,12 @@ SQLITE_PATH=postagent.db MQTT_BROKER=localhost uvicorn postagent.api.main:app --
 - Message payloads are NaCl box encrypted, base64-encoded
 - API versioned under `/v1/`
 
-## What NOT to Build (Yet)
+## What NOT to Build
+- No MCP server — CLI only, no MCP
 - No broker infrastructure — use mosquitto locally or test.mosquitto.org
-- No payment processing — pricing metadata only, Stripe x402 later
 - No message parsing/search/labeling — the agent is the LLM
 - No wallet creation — agents bring their own keypairs
 - No frontend
-- No rate limiting or caching
 
 ## Next Steps
 - [ ] Publish pip package to PyPI

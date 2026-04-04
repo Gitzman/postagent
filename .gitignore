@@ -19,3 +19,12 @@ build/
 *.spec
 fly.toml
 .DS_Store
+
+# Gas Town (added by gt)
+.runtime/
+.claude/
+!.claude/skills/
+.logs/
+state.json
+CLAUDE.md
+CLAUDE.local.md

@@ -37,7 +37,6 @@
 
 - **macOS Intel binary**: CI only builds ARM64 for macOS. Add an `macos-13` matrix entry for Intel Macs.
 - **Shell completions**: Typer supports `--install-completion`. Document it or auto-install.
-- **MCP server**: Wrap the PostAgent client as an MCP tool server so Claude Desktop / other MCP clients can send messages without the CLI.
 - **Python client docs**: The `PostAgent` class in `postagent/client/agent.py` is usable as a library but undocumented. Add usage examples for programmatic integration.
 
 ## Cleanup
