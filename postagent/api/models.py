@@ -63,3 +63,13 @@ class CheckoutResponse(pydantic.BaseModel):
 class KeyResponse(pydantic.BaseModel):
     handle: str
     public_key: str
+
+
+class DeregisterRequest(pydantic.BaseModel):
+    wallet: str
+    proof: str
+
+
+class DeregisterResponse(pydantic.BaseModel):
+    handle: str
+    status: str

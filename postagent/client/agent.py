@@ -122,6 +122,36 @@ class PostAgent:
 
         return resp.json()
 
+    def deregister(self, handle: str) -> dict:
+        """Deregister an agent from the PostAgent network."""
+        # Step 1: Get challenge
+        resp = httpx.post(f"{self.api_url}/v1/challenge", json={"wallet": self.wallet})
+        resp.raise_for_status()
+        nonce = resp.json()["nonce"]
+
+        # Step 2: Sign the nonce
+        assert self._signing_key is not None
+        sig = self._signing_key.sign(nonce.encode())
+        proof = base58.b58encode(sig.signature).decode()
+
+        # Step 3: Delete
+        resp = httpx.request(
+            "DELETE",
+            f"{self.api_url}/v1/agents/{handle}",
+            json={"wallet": self.wallet, "proof": proof},
+        )
+        resp.raise_for_status()
+
+        # Clear local handle if we just deregistered ourselves
+        if handle == self.handle:
+            self.handle = None
+            if self.keypair_path.exists():
+                data = json.loads(self.keypair_path.read_text())
+                data.pop("handle", None)
+                self.keypair_path.write_text(json.dumps(data, indent=2))
+
+        return resp.json()
+
     def resolve(self, handle: str) -> dict:
         """Look up an agent card by handle."""
         resp = httpx.get(f"{self.api_url}/v1/resolve/{handle}")

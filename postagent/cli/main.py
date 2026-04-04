@@ -133,6 +133,30 @@ def register(
 
 
 @app.command()
+def deregister(
+    handle: str = typer.Argument(..., help="Agent handle to deregister."),
+    keypair: str = typer.Option("~/.postagent/keypair.json", help="Path to keypair file."),
+    api_url: str = typer.Option(
+        "https://postagent.fly.dev", "--api", help="PostAgent API server URL."
+    ),
+):
+    """Remove an agent from the PostAgent network.
+
+    \b
+    Signs a challenge from the API server to prove keypair ownership,
+    then deletes the agent card for the given handle.
+
+    \b
+    Examples:
+      postagent deregister alice
+      postagent deregister alice --keypair ~/.postagent/alice.json
+    """
+    agent = _get_agent(keypair=keypair, api_url=api_url)
+    result = agent.deregister(handle=handle)
+    typer.echo(json.dumps(result, indent=2))
+
+
+@app.command()
 def status(
     keypair: str = typer.Option("~/.postagent/keypair.json", help="Path to keypair file."),
     api_url: str = typer.Option(

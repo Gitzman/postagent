@@ -1,11 +1,13 @@
 """Tests for FastAPI endpoints using mocked database."""
 
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, patch
 
 import base58
 from fastapi.testclient import TestClient
 from nacl.signing import SigningKey
 
+from postagent.api.db import _Row
 from postagent.api.main import app
 
 client = TestClient(app)
@@ -70,3 +72,66 @@ def test_discover_empty(mock_discover):
     resp = client.get("/v1/discover", params={"capability": "nonexistent"})
     assert resp.status_code == 200
     assert resp.json() == []
+
+
+# --- Deregister tests ---
+
+
+def _make_wallet_and_proof(nonce: str) -> tuple[str, str]:
+    """Generate a wallet and valid proof for a given nonce."""
+    sk = SigningKey.generate()
+    wallet = base58.b58encode(bytes(sk.verify_key)).decode()
+    sig = sk.sign(nonce.encode())
+    proof = base58.b58encode(sig.signature).decode()
+    return wallet, proof
+
+
+@patch("postagent.api.routers.deregister.db.delete_agent_card", new_callable=AsyncMock)
+@patch("postagent.api.routers.deregister.db.delete_challenge", new_callable=AsyncMock)
+@patch("postagent.api.routers.deregister.db.get_challenge", new_callable=AsyncMock)
+@patch("postagent.api.routers.deregister.db.get_agent_by_handle", new_callable=AsyncMock)
+def test_deregister_success(mock_get_agent, mock_get_challenge, mock_del_challenge, mock_del_card):
+    nonce = "abc123"
+    wallet, proof = _make_wallet_and_proof(nonce)
+    expires = (datetime.now(UTC) + timedelta(minutes=5)).isoformat()
+
+    mock_get_agent.return_value = _Row({"wallet": wallet, "handle": "alice"})
+    mock_get_challenge.return_value = _Row({"nonce": nonce, "expires_at": expires})
+    mock_del_card.return_value = True
+
+    resp = client.request(
+        "DELETE",
+        "/v1/agents/alice",
+        json={"wallet": wallet, "proof": proof},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["handle"] == "alice"
+    assert data["status"] == "deleted"
+    mock_del_card.assert_called_once_with("alice", wallet)
+
+
+@patch("postagent.api.routers.deregister.db.get_agent_by_handle", new_callable=AsyncMock)
+def test_deregister_wrong_wallet(mock_get_agent):
+    mock_get_agent.return_value = _Row({"wallet": "real-wallet", "handle": "alice"})
+
+    resp = client.request(
+        "DELETE",
+        "/v1/agents/alice",
+        json={"wallet": "wrong-wallet", "proof": "fakeproof"},
+    )
+    assert resp.status_code == 401
+    assert "Wallet does not match" in resp.json()["detail"]
+
+
+@patch("postagent.api.routers.deregister.db.get_agent_by_handle", new_callable=AsyncMock)
+def test_deregister_not_found(mock_get_agent):
+    mock_get_agent.return_value = None
+
+    resp = client.request(
+        "DELETE",
+        "/v1/agents/nonexistent",
+        json={"wallet": "somewallet", "proof": "fakeproof"},
+    )
+    assert resp.status_code == 404
+    assert "not found" in resp.json()["detail"]

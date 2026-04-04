@@ -276,6 +276,27 @@ async def get_agent_by_handle(handle: str) -> _Row | None:
         return _Row(dict(row)) if row else None
 
 
+async def delete_agent_card(handle: str, wallet: str) -> bool:
+    """Delete an agent card if the wallet matches. Returns True if a row was deleted."""
+    if _use_pg:
+        pool = await _get_pg_pool()
+        result = await pool.execute(
+            "DELETE FROM agent_cards WHERE handle = $1 AND wallet = $2",
+            handle,
+            wallet,
+        )
+        # asyncpg returns e.g. "DELETE 1" or "DELETE 0"
+        return result.endswith("1")
+    else:
+        conn = _get_sqlite_conn()
+        cur = conn.execute(
+            "DELETE FROM agent_cards WHERE handle = ? AND wallet = ?",
+            (handle, wallet),
+        )
+        conn.commit()
+        return cur.rowcount > 0
+
+
 async def discover_agents(capability: str, limit: int = 10, offset: int = 0) -> list[_Row]:
     if _use_pg:
         pool = await _get_pg_pool()
