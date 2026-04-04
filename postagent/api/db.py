@@ -286,7 +286,7 @@ async def delete_agent_card(handle: str, wallet: str) -> bool:
             wallet,
         )
         # asyncpg returns e.g. "DELETE 1" or "DELETE 0"
-        return result.endswith("1")
+        return str(result).endswith("1")
     else:
         conn = _get_sqlite_conn()
         cur = conn.execute(
