@@ -28,6 +28,7 @@ dependencies = [
     "base58>=2.1",
     "pydantic>=2.10",
     "stripe>=15.0",
+    "python-multipart>=0.0.9",
 ]
 
 [project.optional-dependencies]

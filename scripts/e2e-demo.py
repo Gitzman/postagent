@@ -165,12 +165,12 @@ def main():
         sys.exit(1)
     else:
         print("PASS: Full encrypted round-trip verified")
-        print(f"  ✓ Keypair generation (2 agents)")
-        print(f"  ✓ Registration via API")
-        print(f"  ✓ Discovery by capability")
-        print(f"  ✓ Agent card resolution")
-        print(f"  ✓ Encrypted send: tester → inspector (payload intact)")
-        print(f"  ✓ Encrypted reply: inspector → tester (payload intact)")
+        print("  ✓ Keypair generation (2 agents)")
+        print("  ✓ Registration via API")
+        print("  ✓ Discovery by capability")
+        print("  ✓ Agent card resolution")
+        print("  ✓ Encrypted send: tester → inspector (payload intact)")
+        print("  ✓ Encrypted reply: inspector → tester (payload intact)")
         print(f"  ✓ {len(received_messages)} messages, full round-trip")
         print("=" * 60)
 

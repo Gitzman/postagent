@@ -17,9 +17,12 @@ CREATE TABLE agent_cards (
 );
 
 CREATE INDEX idx_capabilities ON agent_cards USING GIN (capabilities);
+CREATE INDEX idx_agent_cards_created_at ON agent_cards (created_at);
 
 CREATE TABLE challenges (
     wallet      TEXT PRIMARY KEY,
     nonce       TEXT NOT NULL,
     expires_at  TIMESTAMPTZ NOT NULL
 );
+
+CREATE INDEX idx_challenges_expires_at ON challenges (expires_at);

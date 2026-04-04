@@ -18,14 +18,12 @@ Usage:
 import argparse
 import json
 import os
-import sys
-import time
 from datetime import datetime
 from pathlib import Path
 
 import base58
 import paho.mqtt.client as mqtt
-from nacl.public import PrivateKey, PublicKey, Box
+from nacl.public import Box, PrivateKey, PublicKey
 
 MQTT_BROKER = os.environ.get("MQTT_BROKER", "test.mosquitto.org")
 MQTT_PORT = 1883
@@ -98,7 +96,7 @@ def main():
         except Exception:
             return None
 
-    print(f"\n  PostAgent Wiretap")
+    print("\n  PostAgent Wiretap")
     print(f"  Broker: {args.broker}:{MQTT_PORT}")
     print(f"  Topic:  {args.topic}")
     print(f"  Decrypt: {'YES' if can_decrypt else 'NO (provide --alice/--bob keypairs)'}")
@@ -129,7 +127,6 @@ def main():
         sender = envelope.get("from", "?")
         recipient = topic.split("/")[-2]
         encrypted_payload = envelope.get("encrypted_payload", "")
-        msg_ts = envelope.get("timestamp", "")
 
         print(f"  {ts}  ✉ {sender} → {recipient}  ({len(encrypted_payload)} chars encrypted)")
 

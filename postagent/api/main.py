@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from postagent.api import db
-from postagent.api.routers import challenge, checkout, discover, key, register, resolve, webhook
+from postagent.api.routers import challenge, checkout, discover, key, mqtt_auth, register, resolve, webhook
 
 
 @asynccontextmanager
@@ -28,6 +28,7 @@ app.include_router(discover.router)
 app.include_router(key.router)
 app.include_router(checkout.router)
 app.include_router(webhook.router)
+app.include_router(mqtt_auth.router)
 
 
 @app.get("/health")

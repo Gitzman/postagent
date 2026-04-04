@@ -2,6 +2,7 @@
 
 import json
 import os
+import time
 from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
@@ -13,9 +14,12 @@ from nacl.public import PrivateKey
 from nacl.signing import SigningKey
 
 from postagent.client.crypto import decrypt_message, encrypt_message
+from postagent.client.replay import ReplayGuard
 
 MQTT_BROKER = os.environ.get("MQTT_BROKER", "test.mosquitto.org")
-MQTT_PORT = 1883
+MQTT_PORT = int(os.environ.get("MQTT_PORT", "1883"))
+MQTT_USERNAME = os.environ.get("MQTT_USERNAME", "")
+MQTT_PASSWORD = os.environ.get("MQTT_PASSWORD", "")
 DEFAULT_API_URL = os.environ.get("POSTAGENT_API_URL", "https://postagent.fly.dev")
 
 
@@ -34,6 +38,7 @@ class PostAgent:
         self._private_key: PrivateKey | None = None
         self._mqtt_client: mqtt.Client | None = None
         self._message_handler: Callable | None = None
+        self._replay_guard = ReplayGuard()
 
         if self.keypair_path.exists():
             self._load_keypair()
@@ -138,6 +143,12 @@ class PostAgent:
         resp.raise_for_status()
         return resp.json()
 
+    @staticmethod
+    def _configure_mqtt(client: mqtt.Client) -> None:
+        """Apply broker credentials to an MQTT client if configured."""
+        if MQTT_USERNAME:
+            client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
+
     def send(self, target_handle: str, payload: dict | str | bytes) -> None:
         """Encrypt and publish a message to another agent's inbox."""
         assert self.handle is not None, "Must register before sending."
@@ -155,10 +166,19 @@ class PostAgent:
         else:
             message_bytes = payload
 
-        # Encrypt
-        encrypted = encrypt_message(message_bytes, recipient_pub_bytes, self._private_key)
+        # Wrap payload with replay-protection fields before encrypting
+        inner = {
+            "message_id": ReplayGuard.generate_id(),
+            "timestamp": time.time(),
+            "payload": json.loads(message_bytes)
+            if message_bytes[:1] in (b"{", b"[")
+            else message_bytes.decode(errors="replace"),
+        }
+        encrypted = encrypt_message(
+            json.dumps(inner).encode(), recipient_pub_bytes, self._private_key
+        )
 
-        # Build envelope
+        # Build envelope (outer metadata is plaintext for routing)
         envelope = {
             "from": self.handle,
             "encrypted_payload": encrypted,
@@ -169,6 +189,7 @@ class PostAgent:
         # Publish via MQTT
         topic = f"postagent/agents/{target_handle}/inbox"
         client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+        self._configure_mqtt(client)
         client.connect(MQTT_BROKER, MQTT_PORT, keepalive=60)
         client.publish(topic, json.dumps(envelope).encode(), qos=1)
         client.disconnect()
@@ -176,6 +197,38 @@ class PostAgent:
     def reply(self, sender_handle: str, payload: dict | str | bytes) -> None:
         """Convenience method: send a message back to the sender."""
         self.send(sender_handle, payload)
+
+    def _decrypt_and_validate(self, envelope: dict) -> tuple[str, dict | bytes]:
+        """Decrypt an envelope and validate replay protection.
+
+        Returns ``(sender, payload)`` or raises on failure.
+        """
+        assert self._private_key is not None
+        sender = envelope["from"]
+        sender_pub_b58 = self.get_key(sender)
+        sender_pub_bytes = base58.b58decode(sender_pub_b58)
+
+        plaintext = decrypt_message(
+            envelope["encrypted_payload"],
+            sender_pub_bytes,
+            self._private_key,
+        )
+
+        # Try to unpack inner replay-protected envelope
+        try:
+            inner = json.loads(plaintext)
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            # Legacy message without replay protection — accept as-is
+            return sender, plaintext
+
+        if "message_id" in inner and "timestamp" in inner:
+            err = self._replay_guard.check(inner["message_id"], inner["timestamp"])
+            if err:
+                raise ValueError(f"replay rejected: {err}")
+            return sender, inner.get("payload", inner)
+
+        # Not a replay-protected inner envelope — return parsed JSON as payload
+        return sender, inner
 
     def listen(self, handler: Callable[[str, dict | bytes], None]) -> None:
         """Subscribe to inbox and call handler for each decrypted message. Blocking."""
@@ -192,30 +245,13 @@ class PostAgent:
         def on_message(client, userdata, msg):
             try:
                 envelope = json.loads(msg.payload.decode())
-                sender = envelope["from"]
-
-                # Get sender's encryption public key
-                sender_pub_b58 = self.get_key(sender)
-                sender_pub_bytes = base58.b58decode(sender_pub_b58)
-
-                # Decrypt
-                plaintext = decrypt_message(
-                    envelope["encrypted_payload"],
-                    sender_pub_bytes,
-                    self._private_key,
-                )
-
-                # Try to parse as JSON
-                try:
-                    payload = json.loads(plaintext)
-                except (json.JSONDecodeError, UnicodeDecodeError):
-                    payload = plaintext
-
+                sender, payload = self._decrypt_and_validate(envelope)
                 handler(sender, payload)
             except Exception as e:
                 print(f"Error processing message: {e}")
 
         self._mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+        self._configure_mqtt(self._mqtt_client)
         self._mqtt_client.on_connect = on_connect
         self._mqtt_client.on_message = on_message
         self._mqtt_client.connect(MQTT_BROKER, MQTT_PORT, keepalive=60)
@@ -245,23 +281,10 @@ class PostAgent:
         def on_message(client, userdata, msg):
             try:
                 envelope = json.loads(msg.payload.decode())
-                sender = envelope["from"]
-                sender_pub_b58 = self.get_key(sender)
-                sender_pub_bytes = base58.b58decode(sender_pub_b58)
-                plaintext = decrypt_message(
-                    envelope["encrypted_payload"],
-                    sender_pub_bytes,
-                    self._private_key,
-                )
-                try:
-                    payload = json.loads(plaintext)
-                except (json.JSONDecodeError, UnicodeDecodeError):
-                    payload = plaintext
+                sender, payload = self._decrypt_and_validate(envelope)
                 messages.append({"from": sender, "payload": payload})
             except Exception as e:
                 messages.append({"from": "system", "payload": f"Error: {e}"})
-
-        import time
 
         # Persistent session with stable client ID so broker queues
         # QoS 1 messages while we're disconnected between checks
@@ -271,6 +294,7 @@ class PostAgent:
             client_id=client_id,
             clean_session=False,
         )
+        self._configure_mqtt(client)
         client.on_connect = on_connect
         client.on_message = on_message
         client.connect(MQTT_BROKER, MQTT_PORT, keepalive=60)
