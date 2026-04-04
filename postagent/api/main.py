@@ -5,7 +5,17 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from postagent.api import db
-from postagent.api.routers import challenge, checkout, deregister, discover, key, mqtt_auth, register, resolve, webhook
+from postagent.api.routers import (
+    challenge,
+    checkout,
+    deregister,
+    discover,
+    key,
+    mqtt_auth,
+    register,
+    resolve,
+    webhook,
+)
 
 
 @asynccontextmanager
