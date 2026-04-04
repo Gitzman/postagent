@@ -151,9 +151,23 @@ postagent register alice -c chat --api http://localhost:8000
 # Verify
 scripts/verify.sh
 
-# Release (CI builds Linux/macOS/Windows binaries)
+# Release (CI builds binaries + publishes to PyPI)
 git tag v0.3.0 && git push --tags
 ```
+
+### PyPI publishing setup
+
+The release workflow uses [PyPI trusted publishing](https://docs.pypi.org/trusted-publishers/) — no API tokens needed.
+
+One-time setup on PyPI:
+
+1. Go to https://pypi.org/manage/project/postagent/settings/publishing/ (or create the project first)
+2. Add a new trusted publisher:
+   - **Owner:** `Gitzman`
+   - **Repository:** `postagent`
+   - **Workflow:** `release.yml`
+   - **Environment:** `pypi`
+3. Push a `v*` tag to trigger the release
 
 ## License
 

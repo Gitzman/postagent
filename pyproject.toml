@@ -4,8 +4,10 @@ version = "0.1.0"
 description = "Encrypted message broker for AI agents — MQTT pub/sub with end-to-end NaCl encryption"
 readme = "README.md"
 license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.11"
 authors = [{ name = "Geoff Huntley" }]
+keywords = ["ai", "agents", "mqtt", "encryption", "messaging", "nacl", "pub-sub"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
