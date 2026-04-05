@@ -17,7 +17,6 @@ venv/
 dist/
 build/
 *.spec
-fly.toml
 .DS_Store
 
 # Gas Town (added by gt)
