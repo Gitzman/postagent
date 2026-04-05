@@ -15,6 +15,16 @@ from typing import Any
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
+
+def _to_dt(val: str | datetime | None) -> datetime | None:
+    """Convert an ISO-format string to a datetime (asyncpg needs native types)."""
+    if val is None:
+        return None
+    if isinstance(val, datetime):
+        return val
+    return datetime.fromisoformat(val)
+
+
 # ---------------------------------------------------------------------------
 # Row wrapper — normalises access across SQLite rows and asyncpg Records
 # ---------------------------------------------------------------------------
@@ -142,7 +152,7 @@ async def upsert_challenge(wallet: str, nonce: str, expires_at: str) -> None:
             """,
             wallet,
             nonce,
-            expires_at,
+            _to_dt(expires_at),
         )
     else:
         conn = _get_sqlite_conn()
@@ -196,7 +206,8 @@ async def insert_agent_card(
     description: str | None,
     expires_at: str | None = None,
 ) -> None:
-    now = datetime.now(UTC).isoformat()
+    now = datetime.now(UTC)
+    now_iso = now.isoformat()
     if _use_pg:
         pool = await _get_pg_pool()
         await pool.execute(
@@ -214,7 +225,7 @@ async def insert_agent_card(
             pricing_currency,
             pricing_protocol,
             description,
-            expires_at,
+            _to_dt(expires_at),
             now,
             now,
         )
@@ -238,8 +249,8 @@ async def insert_agent_card(
                 pricing_protocol,
                 description,
                 expires_at,
-                now,
-                now,
+                now_iso,
+                now_iso,
             ),
         )
         conn.commit()
@@ -247,12 +258,12 @@ async def insert_agent_card(
 
 async def update_agent_expires_at(handle: str, expires_at: str | None) -> None:
     """Update the expires_at field for an agent card (used by Stripe webhook)."""
-    now = datetime.now(UTC).isoformat()
+    now = datetime.now(UTC)
     if _use_pg:
         pool = await _get_pg_pool()
         await pool.execute(
             "UPDATE agent_cards SET expires_at = $1, updated_at = $2 WHERE handle = $3",
-            expires_at,
+            _to_dt(expires_at),
             now,
             handle,
         )
@@ -260,7 +271,7 @@ async def update_agent_expires_at(handle: str, expires_at: str | None) -> None:
         conn = _get_sqlite_conn()
         conn.execute(
             "UPDATE agent_cards SET expires_at = ?, updated_at = ? WHERE handle = ?",
-            (expires_at, now, handle),
+            (expires_at, now.isoformat(), handle),
         )
         conn.commit()
 
