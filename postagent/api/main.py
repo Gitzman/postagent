@@ -27,7 +27,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="PostAgent",
     description="Encrypted message broker for AI agents",
-    version="0.1.0",
+    version="0.1.1",
     lifespan=lifespan,
 )
 

@@ -1,6 +1,6 @@
 [project]
 name = "postagent"
-version = "0.1.0"
+version = "0.1.1"
 description = "Encrypted message broker for AI agents — MQTT pub/sub with end-to-end NaCl encryption"
 readme = "README.md"
 license = "MIT"
