@@ -108,7 +108,7 @@ _pg_pool: Any = None  # asyncpg.Pool when initialised
 async def _get_pg_pool():
     global _pg_pool
     if _pg_pool is None:
-        import asyncpg
+        import asyncpg  # type: ignore[import-untyped]
 
         _pg_pool = await asyncpg.create_pool(DATABASE_URL, min_size=2, max_size=10)
     return _pg_pool

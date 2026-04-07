@@ -6,6 +6,7 @@ import time
 from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import base58
 import httpx
@@ -86,7 +87,7 @@ class PostAgent:
         price: float | None = None,
         currency: str = "USDC",
         description: str | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """Register this agent with the PostAgent API."""
         # Step 1: Get challenge
         resp = httpx.post(f"{self.api_url}/v1/challenge", json={"wallet": self.wallet})
@@ -120,9 +121,10 @@ class PostAgent:
             data["handle"] = handle
             self.keypair_path.write_text(json.dumps(data, indent=2))
 
-        return resp.json()
+        result: dict[str, Any] = resp.json()
+        return result
 
-    def deregister(self, handle: str) -> dict:
+    def deregister(self, handle: str) -> dict[str, Any]:
         """Deregister an agent from the PostAgent network."""
         # Step 1: Get challenge
         resp = httpx.post(f"{self.api_url}/v1/challenge", json={"wallet": self.wallet})
@@ -150,28 +152,32 @@ class PostAgent:
                 data.pop("handle", None)
                 self.keypair_path.write_text(json.dumps(data, indent=2))
 
-        return resp.json()
+        result: dict[str, Any] = resp.json()
+        return result
 
-    def resolve(self, handle: str) -> dict:
+    def resolve(self, handle: str) -> dict[str, Any]:
         """Look up an agent card by handle."""
         resp = httpx.get(f"{self.api_url}/v1/resolve/{handle}")
         resp.raise_for_status()
-        return resp.json()
+        result: dict[str, Any] = resp.json()
+        return result
 
     def get_key(self, handle: str) -> str:
         """Get just the public key for an agent."""
         resp = httpx.get(f"{self.api_url}/v1/key/{handle}")
         resp.raise_for_status()
-        return resp.json()["public_key"]
+        key: str = resp.json()["public_key"]
+        return key
 
-    def discover(self, capability: str, limit: int = 10) -> list[dict]:
+    def discover(self, capability: str, limit: int = 10) -> list[dict[str, Any]]:
         """Discover agents by capability tag."""
         resp = httpx.get(
             f"{self.api_url}/v1/discover",
             params={"capability": capability, "limit": limit},
         )
         resp.raise_for_status()
-        return resp.json()
+        result: list[dict[str, Any]] = resp.json()
+        return result
 
     @staticmethod
     def _configure_mqtt(client: mqtt.Client) -> None:
